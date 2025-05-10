@@ -22,6 +22,7 @@ function RegisterForm() {
     });
 
     const [errorMessage, setErrorMessage] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
     
 
 
@@ -37,14 +38,15 @@ function RegisterForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMessage('');  // Réinitialise les messages d'erreur
+        setSuccessMessage(''); // Réinitialise les messages de succès
         try {
             const response = await axios.post(`http://localhost:4000/api/auth/register/${selectedType}`, formData);
-            alert(response.data.message);
+            setSuccessMessage(response.data.message);
             navigate('/login');
         } catch (error) {
             console.error(error);
             if (error.response && error.response.data && error.response.data.error) {
-                // Affiche le message d'erreur personnalisé
                 setErrorMessage(error.response.data.error);
             } else {
                 setErrorMessage("Erreur lors de l'inscription. Veuillez réessayer plus tard.");
@@ -79,6 +81,7 @@ function RegisterForm() {
             </div>
             {/* Affichage du message d'erreur */}
             {errorMessage && <p className="error-message">{errorMessage}</p>}
+            {successMessage && <p className="success-message">{successMessage}</p>}
             <button type="submit">Créer un compte</button>
             <p className="auth-link" onClick={() => navigate('/login')}>
                 J'ai déjà un compte
