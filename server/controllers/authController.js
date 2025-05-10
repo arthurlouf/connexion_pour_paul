@@ -141,7 +141,48 @@ async function register(req, res) {
                             from: process.env.EMAIL_USER,
                             to: email,
                             subject: "Vérification de votre compte",
-                            html: `<p>Veuillez cliquer sur ce lien pour vérifier votre compte : <a href="${verificationUrl}">${verificationUrl}</a></p>`
+                            html:  `
+                            <div style="
+                                font-family: Arial, sans-serif;
+                                background-color: #f4f4f4;
+                                padding: 20px;
+                                border-radius: 10px;
+                                max-width: 600px;
+                                margin: auto;
+                                color: #333;
+                            ">
+                                <div style="background-color: #333; color: #fff; padding: 20px; border-radius: 10px 10px 0 0; text-align: center;">
+                                    <h1 style="margin: 0;">Bienvenue sur GestIsen</h1>
+                                </div>
+                    
+                                <div style="padding: 20px; background-color: #fff; border-radius: 0 0 10px 10px;">
+                                    <h2>Bonjour ${nom} ${prenom},</h2>
+                                    <p>Merci de vous être inscrit sur <strong>GestIsen</strong> !</p>
+                                    <p>Pour activer votre compte, veuillez vérifier votre adresse e-mail en cliquant sur le bouton ci-dessous :</p>
+                    
+                                    <a href="${verificationUrl}" style="
+                                        display: inline-block;
+                                        background-color: #535353;
+                                        color: #fff;
+                                        padding: 15px 30px;
+                                        border-radius: 10px;
+                                        text-decoration: none;
+                                        font-weight: bold;
+                                        font-size: 16px;
+                                        margin-top: 20px;
+                                    ">Vérifier mon compte</a>
+                    
+                                    <p style="margin-top: 30px;">Si vous ne pouvez pas cliquer sur le bouton, copiez et collez le lien suivant dans votre navigateur :</p>
+                                    <p style="word-break: break-all; color: #535353;">${verificationUrl}</p>
+                    
+                                    <p style="margin-top: 20px;">À bientôt sur <strong>GestIsen</strong> !</p>
+                    
+                                    <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;" />
+                    
+                                    <p style="font-size: 12px; color: #888;">Vous avez reçu cet e-mail car vous vous êtes inscrit sur GestIsen. Si vous n'êtes pas à l'origine de cette inscription, vous pouvez ignorer ce message.</p>
+                                </div>
+                            </div>
+                        `
                         };
 
                         transporter.sendMail(mailOptions, (error) => {
