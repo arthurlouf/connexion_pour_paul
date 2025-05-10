@@ -25,7 +25,7 @@ function RegisterForm() {
     });
 
     const [errorMessage, setErrorMessage] = useState('');
-    
+    const [successMessage, setSuccessMessage] = useState('');
 
 
     const handleChange = (e) => {
@@ -41,10 +41,32 @@ function RegisterForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setErrorMessage('');  // Réinitialise les messages d'erreur
+        setSuccessMessage(''); // Réinitialise les messages de succès
+        // Vérifie que le mot de passe est robuste
+    if (!isValidPassword(formData.password)) {
+        setErrorMessage("Le mot de passe doit contenir au moins 8 caractères, une majuscule, un chiffre et un caractère spécial.");
+        return;
+    }
+
+    // Vérifie que les mots de passe correspondent
+    if (formData.password !== formData.confirmPassword) {
+        setErrorMessage("Les mots de passe ne correspondent pas.");
+        return;
+    }
         try {
             const response = await axios.post(`http://localhost:4000/api/auth/register/${selectedType}`, formData);
-            setSuccessMessage(response.data.message);
-            navigate('/login');
+            // Affiche le message de succès
+            setSuccessMessage("🎉 Votre compte a été créé avec succès ! Vérifiez votre e-mail pour confirmer votre inscription.");
+            // Efface les champs du formulaire
+            setFormData({
+                nom: '',
+                prenom: '',
+                email: '',
+                telephone: '',
+                password: '',
+                confirmPassword: '',
+            });
         } catch (error) {
             console.error(error);
             if (error.response && error.response.data && error.response.data.error) {
@@ -81,6 +103,7 @@ function RegisterForm() {
             </div>
             {/* Affichage du message d'erreur */}
             {errorMessage && <p className="error-message">{errorMessage}</p>}
+            {successMessage && <p className="success-message">{successMessage}</p>}
             <button type="submit">Créer un compte</button>
             <p className="auth-link" onClick={() => navigate('/login')}>
                 J'ai déjà un compte
