@@ -20,7 +20,6 @@ const transporter = nodemailer.createTransport({
     }
 });
 
-<<<<<<< HEAD
 // Fonction utilitaire pour les réponses JSON
 const sendResponse = (res, statusCode, message, isError = false) => {
     res.status(statusCode).json({
@@ -34,11 +33,6 @@ const sendResponse = (res, statusCode, message, isError = false) => {
 // Fonction d'inscription
 exports.register = async (req, res) => {
     const { nom, prenom, email, password, confirmPassword, telephone } = req.body;
-=======
-// Fonction de connexion
-async function login(req, res) {
-    const { email, password } = req.body;
->>>>>>> 822319821756a681019942b4ac6f453f44e519f4
     const { type } = req.params;
 
     try {
