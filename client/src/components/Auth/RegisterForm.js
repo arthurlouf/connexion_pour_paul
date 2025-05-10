@@ -29,8 +29,11 @@ function RegisterForm() {
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
-        setErrorMessage('');
-        setSuccessMessage('');
+
+        // Réinitialise uniquement le message d'erreur, pas le message de succès
+        if (errorMessage) {
+            setErrorMessage('');
+        }
     };
 
     const handleTypeSelect = (type) => {
@@ -40,6 +43,9 @@ function RegisterForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        setErrorMessage('');
+        setSuccessMessage('');
 
         if (formData.password !== formData.confirmPassword) {
             setErrorMessage('Les mots de passe ne correspondent pas.');
@@ -52,9 +58,16 @@ function RegisterForm() {
         }
 
         try {
-            const response = await axios.post(`http://localhost:4000/api/auth/register/${selectedType}`, formData);
-            setSuccessMessage(response.data.message);
-            navigate('/login');
+            const { data } = await axios.post(`http://localhost:4000/api/auth/register/${selectedType}`, formData);
+            setSuccessMessage(data.message || "🎉 Votre compte a été créé avec succès ! Vérifiez votre e-mail pour confirmer votre inscription.");
+            setFormData({
+                nom: '',
+                prenom: '',
+                email: '',
+                telephone: '',
+                password: '',
+                confirmPassword: '',
+            });
         } catch (error) {
             console.error(error);
             if (error.response && error.response.data && error.response.data.error) {
@@ -82,12 +95,12 @@ function RegisterForm() {
                 </div>
 
                 <div className="form-grid">
-                    <input name="nom" placeholder="Nom" onChange={handleChange} required />
-                    <input name="prenom" placeholder="Prénom" onChange={handleChange} required />
-                    <input name="email" type="email" placeholder="Email" onChange={handleChange} required />
-                    <input name="telephone" placeholder="Téléphone" onChange={handleChange} required />
-                    <input name="password" type="password" placeholder="Mot de passe" onChange={handleChange} required />
-                    <input name="confirmPassword" type="password" placeholder="Confirmer le mot de passe" onChange={handleChange} required />
+                    <input name="nom" placeholder="Nom" onChange={handleChange} value={formData.nom} required />
+                    <input name="prenom" placeholder="Prénom" onChange={handleChange} value={formData.prenom} required />
+                    <input name="email" type="email" placeholder="Email" onChange={handleChange} value={formData.email} required />
+                    <input name="telephone" placeholder="Téléphone" onChange={handleChange} value={formData.telephone} required />
+                    <input name="password" type="password" placeholder="Mot de passe" onChange={handleChange} value={formData.password} required />
+                    <input name="confirmPassword" type="password" placeholder="Confirmer le mot de passe" onChange={handleChange} value={formData.confirmPassword} required />
                 </div>
 
                 {errorMessage && <p className="error-message">{errorMessage}</p>}
