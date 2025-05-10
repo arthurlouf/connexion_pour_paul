@@ -23,15 +23,14 @@ function RegisterForm() {
         password: '',
         confirmPassword: '',
     });
-
     const [errorMessage, setErrorMessage] = useState('');
-    
-
+    const [successMessage, setSuccessMessage] = useState('');
 
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
         setErrorMessage('');
+        setSuccessMessage('');
     };
 
     const handleTypeSelect = (type) => {
@@ -41,6 +40,17 @@ function RegisterForm() {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        if (formData.password !== formData.confirmPassword) {
+            setErrorMessage('Les mots de passe ne correspondent pas.');
+            return;
+        }
+
+        if (!isValidPassword(formData.password)) {
+            setErrorMessage('Le mot de passe doit contenir au moins 8 caractères, une majuscule, un chiffre et un caractère spécial.');
+            return;
+        }
+
         try {
             const response = await axios.post(`http://localhost:4000/api/auth/register/${selectedType}`, formData);
             setSuccessMessage(response.data.message);
@@ -71,21 +81,23 @@ function RegisterForm() {
                     <button type="button" className={selectedType === 'agent' ? 'active' : ''} onClick={() => handleTypeSelect('agent')}>Agent</button>
                 </div>
 
-            <div className="form-grid">
-            <input name="nom" placeholder="Nom" onChange={handleChange} required />
-            <input name="prenom" placeholder="Prénom" onChange={handleChange} required />
-            <input name="email" type="email" placeholder="Email" onChange={handleChange} required />
-            <input name="telephone" placeholder="Téléphone" onChange={handleChange} required />
-            <input name="password" type="password" placeholder="Mot de passe" onChange={handleChange} required />
-            <input name="confirmPassword" type="password" placeholder="Confirmer le mot de passe" onChange={handleChange} required />
-            </div>
-            {/* Affichage du message d'erreur */}
-            {errorMessage && <p className="error-message">{errorMessage}</p>}
-            <button type="submit">Créer un compte</button>
-            <p className="auth-link" onClick={() => navigate('/login')}>
-                J'ai déjà un compte
-            </p>
-        </form>
+                <div className="form-grid">
+                    <input name="nom" placeholder="Nom" onChange={handleChange} required />
+                    <input name="prenom" placeholder="Prénom" onChange={handleChange} required />
+                    <input name="email" type="email" placeholder="Email" onChange={handleChange} required />
+                    <input name="telephone" placeholder="Téléphone" onChange={handleChange} required />
+                    <input name="password" type="password" placeholder="Mot de passe" onChange={handleChange} required />
+                    <input name="confirmPassword" type="password" placeholder="Confirmer le mot de passe" onChange={handleChange} required />
+                </div>
+
+                {errorMessage && <p className="error-message">{errorMessage}</p>}
+                {successMessage && <p className="success-message">{successMessage}</p>}
+
+                <button type="submit">Créer un compte</button>
+                <p className="auth-link" onClick={() => navigate('/login')}>
+                    J'ai déjà un compte
+                </p>
+            </form>
         </>
     );
 }
