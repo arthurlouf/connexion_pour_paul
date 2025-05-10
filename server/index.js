@@ -9,7 +9,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Configuration CORS
 app.use(cors({
     origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -18,9 +17,8 @@ app.use(cors({
 
 app.use(express.json());
 
-// Utilisation des routes pour chaque type d'utilisateur
+// Utilisation des routes pour l'authentification
 app.use('/api/auth', require('./routes/authRoutes'));
-
 
 app.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur http://localhost:${PORT}`);

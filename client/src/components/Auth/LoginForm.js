@@ -1,10 +1,10 @@
 // src/Auth/LoginForm.js
 
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import './Auth.css';
 import axios from 'axios';
+import jwtDecode from 'jwt-decode';
+import './Auth.css';
 
 const logoPath = process.env.PUBLIC_URL + '/logo.png';
 
@@ -16,116 +16,119 @@ function LoginForm() {
         email: '',
         password: '',
     });
+    const [errorMessage, setErrorMessage] = useState('');
 
+    // Vérification du token existant
     useEffect(() => {
-        // Définit un type par défaut si aucun type n'est fourni
-        if (!type) {
-            setSelectedType('proprietaire');
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                const decoded = jwtDecode(token);
+                if (decoded.type === selectedType) {
+                    navigate(`/dashboard/${decoded.type}/${decoded.id}`);
+                }
+            } catch (error) {
+                console.error("Token invalide, suppression...");
+                localStorage.removeItem('token');
+            }
         }
-    }, [type]);
+    }, [navigate, selectedType]);
 
+    // Gestion des changements de formulaire
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
+        setErrorMessage('');
     };
 
-    const handleTypeSelect = (type) => {
-        setSelectedType(type);
-        navigate(`/login/${type}`);
-    };
-
+    // Gestion de la soumission du formulaire
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             const response = await axios.post(`http://localhost:4000/api/auth/login/${selectedType}`, formData);
-            alert(`Bienvenue, ${response.data.user.nom} !`);
-            localStorage.setItem('token', response.data.token);
-            window.location.href = `/dashboard/${selectedType}`;
+            const { token, user } = response.data;
+            localStorage.setItem('token', token);
+            navigate(`/dashboard/${user.type}/${user.id}`);
         } catch (error) {
-            console.error(error);
-            alert("Erreur lors de la connexion. Veuillez réessayer plus tard.");
+            console.error("Erreur lors de la connexion :", error);
+
+            if (error.response) {
+                const status = error.response.status;
+                const serverMessage = error.response.data.error || "";
+
+                // ✅ Utilisation de serverMessage pour des messages plus précis
+                if (status === 403) {
+                    setErrorMessage(serverMessage || "⚠️ Votre compte n'est pas encore vérifié. Veuillez vérifier votre email.");
+                } else if (status === 401) {
+                    setErrorMessage(serverMessage || "❌ Email ou mot de passe incorrect. Veuillez réessayer.");
+                } else {
+                    setErrorMessage(serverMessage || "🛠️ Erreur serveur. Veuillez réessayer plus tard.");
+                }
+            } else {
+                setErrorMessage("🌐 Erreur réseau. Vérifiez votre connexion.");
+            }
         }
     };
 
-    const title = `Connexion ${selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}`;
+    // Gestion du changement de type d'utilisateur
+    const handleTypeSelect = (newType) => {
+        setSelectedType(newType);
+        setErrorMessage('');
+        navigate(`/login/${newType}`);
+    };
 
     return (
         <>
-        <div className="logo-container">
-                <img src={logoPath} alt="Logo" onClick={() => navigate('/')} />
-        </div>
-        <form onSubmit={handleSubmit} className="auth-form">
-            <h2>{title}</h2>
-
-            {/* Boutons de sélection du type de compte */}
-            <div className="account-type-buttons">
-                <button type="button" className={selectedType === 'proprietaire' ? 'active' : ''} onClick={() => handleTypeSelect('proprietaire')}>Propriétaire</button>
-                <button type="button" className={selectedType === 'locataire' ? 'active' : ''} onClick={() => handleTypeSelect('locataire')}>Locataire</button>
-                <button type="button" className={selectedType === 'agent' ? 'active' : ''} onClick={() => handleTypeSelect('agent')}>Agent</button>
+            <div className="logo-container" onClick={() => navigate('/')}>
+                <img src={logoPath} alt="Logo" />
             </div>
 
-            <input name="email" type="email" placeholder="Email" onChange={handleChange} required />
-            <input name="password" type="password" placeholder="Mot de passe" onChange={handleChange} required />
-            <button type="submit">Se connecter</button>
-            <p className="auth-link" onClick={() => navigate('/register')}>
-                Je n'ai pas encore de compte
-            </p>
-        </form>
+            <form onSubmit={handleSubmit} className="auth-form">
+                <h2>Connexion {selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}</h2>
+
+                {/* Boutons de sélection du type de compte */}
+                <div className="account-type-buttons">
+                    {['proprietaire', 'locataire', 'agent'].map((type) => (
+                        <button
+                            key={type}
+                            type="button"
+                            className={selectedType === type ? 'active' : ''}
+                            onClick={() => handleTypeSelect(type)}
+                        >
+                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Messages d'erreur */}
+                {errorMessage && <p className="error-message">{errorMessage}</p>}
+
+                {/* Champs de formulaire */}
+                <input
+                    name="email"
+                    type="email"
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                />
+                <input
+                    name="password"
+                    type="password"
+                    placeholder="Mot de passe"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                />
+                <button type="submit">Se connecter</button>
+
+                {/* Lien pour s'inscrire */}
+                <p className="auth-link" onClick={() => navigate('/register')}>
+                    Je n'ai pas encore de compte
+                </p>
+            </form>
         </>
     );
 }
 
 export default LoginForm;
-
-
-// import React, { useState } from 'react';
-// import { useParams } from 'react-router-dom';
-// import axios from 'axios';
-// import '../../App.css';
-
-// function LoginForm() {
-//     const { type } = useParams();  // Récupère le type depuis l'URL
-//     const [formData, setFormData] = useState({
-//         email: '',
-//         password: '',
-//     });
-
-//     const handleChange = (e) => {
-//         const { name, value } = e.target;
-//         setFormData({ ...formData, [name]: value });
-//     };
-
-//     const handleSubmit = async (e) => {
-//         e.preventDefault();
-//         try {
-//             // Appel dynamique à l'API en fonction du type
-//             const response = await axios.post(`http://localhost:4000/api/auth/login/${type}`, formData);
-//             alert(`Bienvenue, ${response.data.user.nom} !`);
-//             localStorage.setItem('token', response.data.token);
-
-//             // Redirection dynamique selon le type
-//             window.location.href = `/dashboard/${type}`;
-//         } catch (error) {
-//             console.error(error);
-//             if (error.response && error.response.data && error.response.data.error) {
-//                 alert(error.response.data.error);
-//             } else {
-//                 alert("Erreur inconnue. Veuillez réessayer plus tard.");
-//             }
-//         }
-//     };
-
-//     // Titre dynamique pour le formulaire
-//     const title = `Connexion ${type.charAt(0).toUpperCase() + type.slice(1)}`;
-
-//     return (
-//         <form onSubmit={handleSubmit} className="login-form">
-//             <h2>{title}</h2>
-//             <input name="email" type="email" placeholder="Email" onChange={handleChange} required />
-//             <input name="password" type="password" placeholder="Mot de passe" onChange={handleChange} required />
-//             <button type="submit">Se connecter</button>
-//         </form>
-//     );
-// }
-
-// export default LoginForm;

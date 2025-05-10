@@ -5,6 +5,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LoginForm from './components/Auth/LoginForm';
 import RegisterForm from './components/Auth/RegisterForm';
 import VerifyAccount from './components/VerifyAccount/VerifyAccount';
+import PrivateRoute from './components/PrivateRoute';
+import Dashboard from './components/Dashboard';
+
+
 import './App.css';
 
 function App() {
@@ -25,8 +29,13 @@ function App() {
                 {/* Vérification de compte */}
                 <Route path="/verify/:type/:token" element={<VerifyAccount />} />
 
+                {/* Tableau de bord sécurisé */}
+                <Route path="/dashboard/:type/:id" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+
+
                 {/* Page 404 (Optionnel) */}
                 <Route path="*" element={<h2>404 - Page non trouvée</h2>} />
+                
             </Routes>
         </Router>
     );

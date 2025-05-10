@@ -20,6 +20,7 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+<<<<<<< HEAD
 // Fonction utilitaire pour les réponses JSON
 const sendResponse = (res, statusCode, message, isError = false) => {
     res.status(statusCode).json({
@@ -33,64 +34,75 @@ const sendResponse = (res, statusCode, message, isError = false) => {
 // Fonction d'inscription
 exports.register = async (req, res) => {
     const { nom, prenom, email, password, confirmPassword, telephone } = req.body;
+=======
+// Fonction de connexion
+async function login(req, res) {
+    const { email, password } = req.body;
+>>>>>>> 822319821756a681019942b4ac6f453f44e519f4
     const { type } = req.params;
-
-    if (password !== confirmPassword) {
-        return res.status(400).json({ error: "Les mots de passe ne correspondent pas." });
-    }
 
     try {
         db.query(
-            `SELECT * FROM ${type} WHERE email = ? OR telephone = ?`,
-            [email, telephone],
+            `SELECT * FROM ${type} WHERE email = ?`,
+            [email],
             async (err, results) => {
                 if (err) {
-                    return res.status(500).json({ error: "Erreur lors de la vérification des données." });
+                    console.error("Erreur serveur :", err);
+                    return res.status(500).json({ error: "Erreur serveur." });
                 }
 
-                if (results.length > 0) {
-                    return res.status(409).json({ error: "Cet e-mail ou ce numéro de téléphone est déjà utilisé." });
+                // Vérifie que l'utilisateur existe
+                if (results.length === 0) {
+                    return res.status(401).json({ error: "Email ou mot de passe incorrect." });
                 }
 
-                const hashedPassword = await bcrypt.hash(password, 10);
-                const verificationToken = require('crypto').randomBytes(32).toString('hex');
+                const user = results[0];
 
-                db.query(
-                    `INSERT INTO ${type} (nom, prenom, email, password, telephone, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)`,
-                    [nom, prenom, email, hashedPassword, telephone, verificationToken],
-                    (err) => {
-                        if (err) {
-                            return res.status(500).json({ error: "Erreur lors de la création du compte." });
-                        }
+                // Vérifie que l'utilisateur est bien vérifié
+                if (user.is_verified !== 1) {
+                    console.log("🔒 Compte non vérifié :", user.email);
+                    return res.status(403).json({ error: "Votre compte n'est pas encore vérifié. Veuillez vérifier votre email." });
+                }
 
-                        const verificationUrl = `${process.env.FRONTEND_URL}/verify/${type}/${verificationToken}`;
-                        const mailOptions = {
-                            from: process.env.EMAIL_USER,
-                            to: email,
-                            subject: "Vérification de votre compte",
-                            html: `<p>Veuillez cliquer sur ce lien pour vérifier votre compte : <a href="${verificationUrl}">${verificationUrl}</a></p>`
-                        };
+                // Vérifie le mot de passe
+                const isMatch = await bcrypt.compare(password, user.password);
 
-                        transporter.sendMail(mailOptions, (error) => {
-                            if (error) {
-                                return res.status(500).json({ error: "Erreur lors de l'envoi de l'email." });
-                            }
+                if (!isMatch) {
+                    console.log("❌ Mot de passe incorrect pour :", user.email);
+                    return res.status(401).json({ error: "Email ou mot de passe incorrect." });
+                }
 
-                            res.status(201).json({ message: "Compte créé. Vérifiez votre email pour confirmer votre inscription." });
-                        });
-                    }
+                // Génère le token JWT
+                const token = jwt.sign(
+                    { id: user.id, type: type },
+                    process.env.JWT_SECRET,
+                    { expiresIn: '1h' }
                 );
+
+                console.log("✅ Connexion réussie pour :", user.email);
+
+                // Réponse au client
+                res.status(200).json({
+                    message: "Connexion réussie",
+                    token,
+                    user: {
+                        id: user.id,
+                        nom: user.nom,
+                        prenom: user.prenom,
+                        type: type
+                    }
+                });
             }
         );
     } catch (error) {
+        console.error("Erreur serveur :", error);
         res.status(500).json({ error: "Erreur serveur." });
     }
-};
+}
 
-// Fonction de vérification de l'email
-exports.verifyEmail = (req, res) => {
+// Fonction de vérification d'email
+function verifyEmail(req, res) {
     const { type, token } = req.params;
-    console.log("🔑 Token reçu :", token);
 
     db.query(
         `UPDATE ${type} SET is_verified = 1 WHERE verification_token = ?`,
@@ -108,43 +120,77 @@ exports.verifyEmail = (req, res) => {
             res.status(200).json({ message: "Vérification réussie." });
         }
     );
-};
+}
 
-// Fonction de connexion
-exports.login = async (req, res) => {
-    const { email, password } = req.body;
+// Fonction d'inscription
+async function register(req, res) {
+    const { nom, prenom, email, password, confirmPassword, telephone } = req.body;
     const { type } = req.params;
 
+    // Vérification des mots de passe
+    if (password !== confirmPassword) {
+        return res.status(400).json({ error: "Les mots de passe ne correspondent pas." });
+    }
+
     try {
+        // Vérification si l'email ou le téléphone est déjà utilisé
         db.query(
-            `SELECT * FROM ${type} WHERE email = ?`,
-            [email],
+            `SELECT * FROM ${type} WHERE email = ? OR telephone = ?`,
+            [email, telephone],
             async (err, results) => {
                 if (err) {
-                    return res.status(500).json({ error: "Erreur serveur." });
+                    console.error("Erreur serveur :", err);
+                    return res.status(500).json({ error: "Erreur lors de la vérification des données." });
                 }
 
-                if (results.length === 0) {
-                    return res.status(401).json({ error: "Email ou mot de passe incorrect." });
+                if (results.length > 0) {
+                    return res.status(409).json({ error: "Cet e-mail ou ce numéro de téléphone est déjà utilisé." });
                 }
 
-                const user = results[0];
+                // Hachage du mot de passe
+                const hashedPassword = await bcrypt.hash(password, 10);
+                const verificationToken = require('crypto').randomBytes(32).toString('hex');
 
-                if (user.is_verified !== 1) {
-                    return res.status(403).json({ error: "Votre compte n'est pas encore vérifié." });
-                }
+                // Insertion dans la base de données
+                db.query(
+                    `INSERT INTO ${type} (nom, prenom, email, password, telephone, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)`,
+                    [nom, prenom, email, hashedPassword, telephone, verificationToken],
+                    (err) => {
+                        if (err) {
+                            console.error("Erreur serveur :", err);
+                            return res.status(500).json({ error: "Erreur lors de la création du compte." });
+                        }
 
-                const isMatch = await bcrypt.compare(password, user.password);
+                        // Envoi de l'email de vérification
+                        const verificationUrl = `${process.env.FRONTEND_URL}/verify/${type}/${verificationToken}`;
+                        const mailOptions = {
+                            from: process.env.EMAIL_USER,
+                            to: email,
+                            subject: "Vérification de votre compte",
+                            html: `<p>Veuillez cliquer sur ce lien pour vérifier votre compte : <a href="${verificationUrl}">${verificationUrl}</a></p>`
+                        };
 
-                if (!isMatch) {
-                    return res.status(401).json({ error: "Email ou mot de passe incorrect." });
-                }
+                        transporter.sendMail(mailOptions, (error) => {
+                            if (error) {
+                                console.error("Erreur lors de l'envoi de l'email :", error);
+                                return res.status(500).json({ error: "Erreur lors de l'envoi de l'email." });
+                            }
 
-                const token = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-                res.status(200).json({ message: "Connexion réussie", token, user });
+                            res.status(201).json({ message: "Compte créé. Vérifiez votre email pour confirmer votre inscription." });
+                        });
+                    }
+                );
             }
         );
     } catch (error) {
+        console.error("Erreur serveur :", error);
         res.status(500).json({ error: "Erreur serveur." });
     }
+}
+
+// Exports
+module.exports = {
+    register,
+    login,
+    verifyEmail
 };
