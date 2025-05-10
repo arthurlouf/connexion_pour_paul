@@ -16,4 +16,10 @@ router.get('/verify/:type/:token', authController.verifyEmail);
 // Route pour la connexion
 router.post('/login/:type', authController.login);
 
+// Route pour demander un lien de réinitialisation de mot de passe
+router.post('/forgot-password/:type', authController.forgotPassword);
+
+// Route pour réinitialiser le mot de passe avec le token
+router.post('/reset-password/:type/:token', authController.resetPassword);
+
 module.exports = router;

@@ -18,7 +18,6 @@ function LoginForm() {
     });
     const [errorMessage, setErrorMessage] = useState('');
 
-    // Vérification du token existant
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
@@ -34,14 +33,12 @@ function LoginForm() {
         }
     }, [navigate, selectedType]);
 
-    // Gestion des changements de formulaire
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
         setErrorMessage('');
     };
 
-    // Gestion de la soumission du formulaire
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
@@ -56,7 +53,6 @@ function LoginForm() {
                 const status = error.response.status;
                 const serverMessage = error.response.data.error || "";
 
-                // ✅ Utilisation de serverMessage pour des messages plus précis
                 if (status === 403) {
                     setErrorMessage(serverMessage || "⚠️ Votre compte n'est pas encore vérifié. Veuillez vérifier votre email.");
                 } else if (status === 401) {
@@ -70,7 +66,6 @@ function LoginForm() {
         }
     };
 
-    // Gestion du changement de type d'utilisateur
     const handleTypeSelect = (newType) => {
         setSelectedType(newType);
         setErrorMessage('');
@@ -86,7 +81,6 @@ function LoginForm() {
             <form onSubmit={handleSubmit} className="auth-form">
                 <h2>Connexion {selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}</h2>
 
-                {/* Boutons de sélection du type de compte */}
                 <div className="account-type-buttons">
                     {['proprietaire', 'locataire', 'agent'].map((type) => (
                         <button
@@ -100,10 +94,8 @@ function LoginForm() {
                     ))}
                 </div>
 
-                {/* Messages d'erreur */}
                 {errorMessage && <p className="error-message">{errorMessage}</p>}
 
-                {/* Champs de formulaire */}
                 <input
                     name="email"
                     type="email"
@@ -122,9 +114,12 @@ function LoginForm() {
                 />
                 <button type="submit">Se connecter</button>
 
-                {/* Lien pour s'inscrire */}
                 <p className="auth-link" onClick={() => navigate('/register')}>
                     Je n'ai pas encore de compte
+                </p>
+
+                <p className="auth-link" onClick={() => navigate(`/forgot-password/${selectedType}`)}>
+                    Mot de passe oublié ?
                 </p>
             </form>
         </>

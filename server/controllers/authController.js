@@ -45,20 +45,17 @@ exports.register = async (req, res) => {
                     return res.status(500).json({ error: "Erreur serveur." });
                 }
 
-                // Vérifie que l'utilisateur existe
                 if (results.length === 0) {
                     return res.status(401).json({ error: "Email ou mot de passe incorrect." });
                 }
 
                 const user = results[0];
 
-                // Vérifie que l'utilisateur est bien vérifié
                 if (user.is_verified !== 1) {
                     console.log("🔒 Compte non vérifié :", user.email);
                     return res.status(403).json({ error: "Votre compte n'est pas encore vérifié. Veuillez vérifier votre email." });
                 }
 
-                // Vérifie le mot de passe
                 const isMatch = await bcrypt.compare(password, user.password);
 
                 if (!isMatch) {
@@ -66,7 +63,6 @@ exports.register = async (req, res) => {
                     return res.status(401).json({ error: "Email ou mot de passe incorrect." });
                 }
 
-                // Génère le token JWT
                 const token = jwt.sign(
                     { id: user.id, type: type },
                     process.env.JWT_SECRET,
@@ -75,7 +71,6 @@ exports.register = async (req, res) => {
 
                 console.log("✅ Connexion réussie pour :", user.email);
 
-                // Réponse au client
                 res.status(200).json({
                     message: "Connexion réussie",
                     token,
@@ -121,13 +116,11 @@ async function register(req, res) {
     const { nom, prenom, email, password, confirmPassword, telephone } = req.body;
     const { type } = req.params;
 
-    // Vérification des mots de passe
     if (password !== confirmPassword) {
         return res.status(400).json({ error: "Les mots de passe ne correspondent pas." });
     }
 
     try {
-        // Vérification si l'email ou le téléphone est déjà utilisé
         db.query(
             `SELECT * FROM ${type} WHERE email = ? OR telephone = ?`,
             [email, telephone],
@@ -141,11 +134,9 @@ async function register(req, res) {
                     return res.status(409).json({ error: "Cet e-mail ou ce numéro de téléphone est déjà utilisé." });
                 }
 
-                // Hachage du mot de passe
                 const hashedPassword = await bcrypt.hash(password, 10);
                 const verificationToken = require('crypto').randomBytes(32).toString('hex');
 
-                // Insertion dans la base de données
                 db.query(
                     `INSERT INTO ${type} (nom, prenom, email, password, telephone, verification_token, is_verified) VALUES (?, ?, ?, ?, ?, ?, 0)`,
                     [nom, prenom, email, hashedPassword, telephone, verificationToken],
@@ -155,7 +146,6 @@ async function register(req, res) {
                             return res.status(500).json({ error: "Erreur lors de la création du compte." });
                         }
 
-                        // Envoi de l'email de vérification
                         const verificationUrl = `${process.env.FRONTEND_URL}/verify/${type}/${verificationToken}`;
                         const mailOptions = {
                             from: process.env.EMAIL_USER,
@@ -182,9 +172,72 @@ async function register(req, res) {
     }
 }
 
+// Fonction pour demander un lien de réinitialisation
+async function forgotPassword(req, res) {
+    const { type } = req.params;
+    const { email } = req.body;
+
+    try {
+        const resetToken = jwt.sign({ email, type }, process.env.JWT_SECRET, { expiresIn: '1h' });
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${type}/${resetToken}`;
+
+        const mailOptions = {
+            from: process.env.EMAIL_USER,
+            to: email,
+            subject: "Réinitialisation de votre mot de passe",
+            html: `<p>Cliquez sur ce lien pour réinitialiser votre mot de passe : <a href="${resetUrl}">${resetUrl}</a></p>`
+        };
+
+        transporter.sendMail(mailOptions, (error) => {
+            if (error) {
+                console.error("Erreur lors de l'envoi de l'email :", error);
+                return res.status(500).json({ error: "Erreur lors de l'envoi de l'email." });
+            }
+
+            res.status(200).json({ message: "Un lien de réinitialisation a été envoyé à votre adresse email." });
+        });
+    } catch (error) {
+        console.error("Erreur serveur :", error);
+        res.status(500).json({ error: "Erreur serveur." });
+    }
+}
+
+// Fonction pour réinitialiser le mot de passe
+async function resetPassword(req, res) {
+    const { type, token } = req.params;
+    const { password, confirmPassword } = req.body;
+
+    if (password !== confirmPassword) {
+        return res.status(400).json({ error: "Les mots de passe ne correspondent pas." });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        db.query(
+            `UPDATE ${type} SET password = ? WHERE email = ?`,
+            [hashedPassword, decoded.email],
+            (err) => {
+                if (err) {
+                    console.error("Erreur serveur :", err);
+                    return res.status(500).json({ error: "Erreur lors de la réinitialisation du mot de passe." });
+                }
+
+                res.status(200).json({ message: "Votre mot de passe a été réinitialisé avec succès." });
+            }
+        );
+    } catch (error) {
+        console.error("Token invalide ou expiré :", error);
+        res.status(400).json({ error: "Le lien de réinitialisation est invalide ou a expiré." });
+    }
+}
+
 // Exports
 module.exports = {
     register,
     login,
-    verifyEmail
+    verifyEmail,
+    forgotPassword,
+    resetPassword
 };

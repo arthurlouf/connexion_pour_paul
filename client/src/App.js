@@ -7,7 +7,8 @@ import RegisterForm from './components/Auth/RegisterForm';
 import VerifyAccount from './components/VerifyAccount/VerifyAccount';
 import PrivateRoute from './components/PrivateRoute';
 import Dashboard from './components/Dashboard';
-
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 
 import './App.css';
 
@@ -31,6 +32,10 @@ function App() {
 
                 {/* Tableau de bord sécurisé */}
                 <Route path="/dashboard/:type/:id" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+
+                {/* Nouvelles routes pour le système de mot de passe oublié */}
+                <Route path="/forgot-password/:type" element={<ForgotPassword />} />
+                <Route path="/reset-password/:type/:token" element={<ResetPassword />} />
 
 
                 {/* Page 404 (Optionnel) */}
