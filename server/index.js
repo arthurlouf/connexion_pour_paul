@@ -9,13 +9,15 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// ✅ Middleware pour analyser le JSON du body
+app.use(express.json());
+
+// ✅ Middleware pour permettre les requêtes CORS
 app.use(cors({
     origin: process.env.FRONTEND_URL,
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
 }));
-
-app.use(express.json());
 
 // Utilisation des routes pour l'authentification
 app.use('/api/auth', require('./routes/authRoutes'));

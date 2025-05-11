@@ -11,20 +11,27 @@ const PrivateRoute = ({ children }) => {
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (!token) {
+            console.log("🔒 Pas de token, redirection...");
             navigate(`/login/${type}`);
             return;
         }
 
         try {
             const decoded = jwtDecode(token);
-            if (decoded.id !== parseInt(id) || decoded.type !== type) {
+            console.log("🔑 Token décodé :", decoded);
+
+            // ✅ Vérifiez l'ID et le type
+            if (decoded.id !== parseInt(id) || !decoded.roles.includes(type)) {
+                console.log("🔒 Token invalide, suppression...");
                 localStorage.removeItem('token');
                 navigate(`/login/${type}`);
+                return;
             }
         } catch (error) {
-            console.error("Token invalide :", error);
+            console.error("❌ Token invalide :", error);
             localStorage.removeItem('token');
             navigate(`/login/${type}`);
+            return;
         }
     }, [id, type, navigate]);
 

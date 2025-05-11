@@ -13,7 +13,7 @@ const VerifyAccount = () => {
         if (token) {
             console.log("🔑 Token reçu depuis l'URL :", token);
 
-            fetch(`http://localhost:4000/api/auth/verify/${type}/${token}`)
+            fetch(`http://localhost:4000/api/auth/verify/${token}`)
                 .then((res) => {
                     const contentType = res.headers.get("content-type");
                     if (res.ok && contentType && contentType.includes("application/json")) {

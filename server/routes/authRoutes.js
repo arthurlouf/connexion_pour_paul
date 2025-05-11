@@ -14,7 +14,7 @@ router.post('/register/:type', authController.register);
 router.get('/verify/:type/:token', authController.verifyEmail);
 
 // Route pour la connexion
-router.post('/login/:type', authController.login);
+router.post('/login', authController.login);
 
 // Route pour demander un lien de réinitialisation de mot de passe
 router.post('/forgot-password/:type', authController.forgotPassword);

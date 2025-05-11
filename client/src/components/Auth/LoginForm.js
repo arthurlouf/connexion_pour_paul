@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import jwtDecode from 'jwt-decode';
 import './Auth.css';
 
 const logoPath = process.env.PUBLIC_URL + '/logo.png';
@@ -18,34 +18,58 @@ function LoginForm() {
     });
     const [errorMessage, setErrorMessage] = useState('');
 
+    // ✅ Vérification du token au chargement
     useEffect(() => {
         const token = localStorage.getItem('token');
         if (token) {
             try {
                 const decoded = jwtDecode(token);
-                if (decoded.type === selectedType) {
-                    navigate(`/dashboard/${decoded.type}/${decoded.id}`);
+                // ✅ Vérification des rôles
+                if (decoded.roles.includes(selectedType)) {
+                    navigate(`/dashboard/${selectedType}/${decoded.id}`);
                 }
             } catch (error) {
-                console.error("Token invalide, suppression...");
+                console.error("❌ Token invalide, suppression...");
                 localStorage.removeItem('token');
             }
         }
-    }, [navigate, selectedType]);
 
+        // ✅ Redirection vers "proprietaire" par défaut si aucun type n'est fourni
+        if (!type) {
+            setSelectedType('proprietaire');
+            navigate('/login/proprietaire');
+        }
+    }, [navigate, selectedType, type]);
+
+    // ✅ Gestion des changements dans le formulaire
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({ ...formData, [name]: value });
         setErrorMessage('');
     };
 
+    // ✅ Gestion de la soumission du formulaire
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await axios.post(`http://localhost:4000/api/auth/login/${selectedType}`, formData);
+            const response = await axios.post(`http://localhost:4000/api/auth/login`, {
+                email: formData.email,
+                password: formData.password
+            });
+
             const { token, user } = response.data;
+
+            // ✅ Vérification du rôle avant de stocker le token
+            const roles = user.roles;
+            if (!roles.includes(selectedType)) {
+                console.error("🔒 Tentative de connexion avec un rôle incorrect :", selectedType, roles);
+                setErrorMessage(`Vous essayez de vous connecter en tant que "${selectedType}", mais votre rôle est "${roles.join(", ")}".`);
+                return;
+            }
+
+            // ✅ Stockage du token si le rôle est correct
             localStorage.setItem('token', token);
-            navigate(`/dashboard/${user.type}/${user.id}`);
+            navigate(`/dashboard/${selectedType}/${user.id}`);
         } catch (error) {
             console.error("Erreur lors de la connexion :", error);
 
@@ -66,6 +90,7 @@ function LoginForm() {
         }
     };
 
+    // ✅ Gestion du changement de type d'utilisateur
     const handleTypeSelect = (newType) => {
         setSelectedType(newType);
         setErrorMessage('');
@@ -82,14 +107,14 @@ function LoginForm() {
                 <h2>Connexion {selectedType.charAt(0).toUpperCase() + selectedType.slice(1)}</h2>
 
                 <div className="account-type-buttons">
-                    {['proprietaire', 'locataire', 'agent'].map((type) => (
+                    {['proprietaire', 'locataire', 'agent'].map((roleType) => (
                         <button
-                            key={type}
+                            key={roleType}
                             type="button"
-                            className={selectedType === type ? 'active' : ''}
-                            onClick={() => handleTypeSelect(type)}
+                            className={selectedType === roleType ? 'active' : ''}
+                            onClick={() => handleTypeSelect(roleType)}
                         >
-                            {type.charAt(0).toUpperCase() + type.slice(1)}
+                            {roleType.charAt(0).toUpperCase() + roleType.slice(1)}
                         </button>
                     ))}
                 </div>
