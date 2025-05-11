@@ -2,24 +2,34 @@
 
 const express = require('express');
 const router = express.Router();
-const authController = require('../controllers/authController');
+const { register, login, verifyEmail, forgotPassword, resetPassword } = require('../controllers/authController');
 
-// Vérifie que authController est bien un objet avec des fonctions
-console.log("📝 authController :", authController);
+// ✅ Vérification du chargement des fonctions du contrôleur
+console.log("📝 AuthController chargé avec succès");
 
-// Route pour l'inscription
-router.post('/register/:type', authController.register);
+// ✅ Route pour l'inscription (avec validation des rôles)
+router.post('/register/:type', (req, res, next) => {
+    const { type } = req.params;
+    const validRoles = ["agent", "proprietaire", "locataire"];
 
-// Route de vérification pour les comptes
-router.get('/verify/:type/:token', authController.verifyEmail);
+    if (!validRoles.includes(type)) {
+        return res.status(400).json({ error: "Rôle invalide." });
+    }
 
-// Route pour la connexion
-router.post('/login', authController.login);
+    // Passe au contrôleur si le rôle est valide
+    register(req, res, next);
+});
 
-// Route pour demander un lien de réinitialisation de mot de passe
-router.post('/forgot-password/:type', authController.forgotPassword);
+// ✅ Route pour la vérification des comptes
+router.get('/verify/:token', verifyEmail);
 
-// Route pour réinitialiser le mot de passe avec le token
-router.post('/reset-password/:type/:token', authController.resetPassword);
+// ✅ Route pour la connexion
+router.post('/login', login);
+
+// ✅ Route pour demander un lien de réinitialisation de mot de passe
+router.post('/forgot-password', forgotPassword);
+
+// ✅ Route pour réinitialiser le mot de passe avec le token
+router.post('/reset-password/:token', resetPassword);
 
 module.exports = router;
