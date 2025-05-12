@@ -25,7 +25,7 @@ function App() {
                 <Route path="/register" element={<Navigate to="/register/proprietaire" />} />
 
                 {/* Vérification de compte */}
-                <Route path="/verify/:type/:token" element={<VerifyAccount />} />
+                <Route path="/verify/:token" element={<VerifyAccount />} />
 
                 {/* Tableaux de bord sécurisés */}
                 <Route path="/dashboard/:type/:id" element={<PrivateRoute><Dashboard /></PrivateRoute>} />

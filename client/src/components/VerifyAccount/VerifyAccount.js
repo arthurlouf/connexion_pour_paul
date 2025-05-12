@@ -1,50 +1,54 @@
-// src/VerifyAccount/VerifyAccount.js
+// src/components/Auth/VerifyAccount.js
 
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import '../../App.css';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const VerifyAccount = () => {
-    const { type, token } = useParams();
+    const { token } = useParams();
+    const navigate = useNavigate();
     const [message, setMessage] = useState("");
-    const [status, setStatus] = useState("");
+    const verificationStarted = useRef(false); // ✅ Nouvelle vérification anti-double appel
 
     useEffect(() => {
-        if (token) {
-            console.log("🔑 Token reçu depuis l'URL :", token);
+        const verifyAccount = async () => {
+            try {
+                // ✅ Empêche les appels multiples
+                if (verificationStarted.current) return;
+                verificationStarted.current = true;
 
-            fetch(`http://localhost:4000/api/auth/verify/${token}`)
-                .then((res) => {
-                    const contentType = res.headers.get("content-type");
-                    if (res.ok && contentType && contentType.includes("application/json")) {
-                        return res.json();
-                    } else {
-                        throw new Error("Lien de vérification invalide ou expiré.");
-                    }
-                })
-                .then((data) => {
-                    if (data.message) {
-                        setMessage("🎉 Votre compte a été vérifié avec succès !");
-                        setStatus("success");
-                        setTimeout(() => {
-                            window.location.href = `/login/${type}`;
-                        }, 3000);
-                    } else {
-                        setMessage("⚠️ Le lien de vérification est invalide ou a expiré.");
-                        setStatus("error");
-                    }
-                })
-                .catch((err) => {
-                    console.error("🚨 Erreur attrapée :", err.message);
-                    setMessage("⚠️ Le lien de vérification est invalide ou a expiré.");
-                    setStatus("error");
-                });
+                console.log("🔄 Début de la vérification du compte avec token :", token);
+                
+                const response = await axios.get(`http://localhost:4000/api/auth/verify/${token}`);
+                
+                console.log("✅ Réponse du serveur :", response.data);
+                
+                setMessage(response.data.message || "✅ Votre compte a été vérifié avec succès.");
+                
+                // ✅ Redirige après 3 secondes si succès
+                console.log("🔄 Redirection prévue dans 3 secondes...");
+                setTimeout(() => navigate('/login/proprietaire'), 3000);
+            } catch (error) {
+                console.error("🚨 Erreur attrapée :", error.response?.data?.error || error.message);
+                
+                // ✅ Affichage d'un message plus clair
+                setMessage(error.response?.data?.error || "⚠️ Lien de vérification invalide ou expiré.");
+            }
+        };
+
+        // ✅ Vérifie que le token est présent
+        if (token && !verificationStarted.current) {
+            console.log("🔄 Token trouvé, lancement de la vérification");
+            verifyAccount();
+        } else {
+            console.log("⚠️ Aucun token trouvé ou déjà vérifié");
         }
-    }, [type, token]);
+    }, [token, navigate]);
 
     return (
-        <div className={`verify-container ${status}`}>
-            <h2>{message}</h2>
+        <div className="auth-container">
+            <h2>Vérification du Compte</h2>
+            <p>{message}</p>
         </div>
     );
 };
