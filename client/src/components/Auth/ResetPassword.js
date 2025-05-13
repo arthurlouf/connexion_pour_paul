@@ -5,12 +5,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import './Auth.css';
 
-const ResetPassword = () => {
-    const { type, token } = useParams();
+function ResetPassword() {
+    const { token } = useParams();
     const navigate = useNavigate();
     const [formData, setFormData] = useState({
         password: '',
-        confirmPassword: '',
+        confirmPassword: ''
     });
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
@@ -23,18 +23,28 @@ const ResetPassword = () => {
     };
 
     const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-        const response = await axios.post(`http://localhost:4000/api/auth/reset-password/${type}/${token}`, formData);
-        setMessage(response.data.message);
-        setError('');
-        setTimeout(() => navigate(`/login/${type}`), 3000);
-    } catch (error) {
-        console.error(error);
-        setMessage('');
-        setError("⚠️ Le lien de réinitialisation est invalide ou a expiré. Veuillez réessayer.");
-    }
-};
+        e.preventDefault();
+
+        if (formData.password !== formData.confirmPassword) {
+            console.warn("⚠️ Les mots de passe ne correspondent pas.");
+            setError("Les mots de passe ne correspondent pas.");
+            return;
+        }
+
+        try {
+            console.log("🔑 Envoi du token :", token);
+            console.log("📩 Données envoyées :", formData);
+
+            const response = await axios.post(`http://localhost:4000/api/auth/reset-password/${token}`, formData);
+            console.log("✅ Réponse du serveur :", response.data);
+            setMessage(response.data.message);
+            setError('');
+            setTimeout(() => navigate(`/login`), 3000);
+        } catch (error) {
+            console.error("❌ Erreur lors de la réinitialisation du mot de passe :", error);
+            setError("⚠️ Le lien de réinitialisation est invalide ou a expiré.");
+        }
+    };
 
     return (
         <div className="auth-container">
@@ -65,6 +75,6 @@ const ResetPassword = () => {
             </form>
         </div>
     );
-};
+}
 
 export default ResetPassword;

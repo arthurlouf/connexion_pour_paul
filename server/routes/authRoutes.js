@@ -1,77 +1,81 @@
 // server/routes/authRoutes.js
+// -----------------------------------------------------------------------------
+// Routes d'authentification et de gestion d'utilisateur
+// -----------------------------------------------------------------------------
 
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const { 
-    register, 
-    login, 
-    verifyEmail, 
-    forgotPassword, 
-    resetPassword, 
-    requestRoleConfirmation, 
-    confirmRole 
-} = require('../controllers/authController');
 
-// ✅ Vérification du chargement des fonctions du contrôleur
-console.log("📝 AuthController chargé avec succès");
+const {
+  register,
+  login,
+  verifyEmail,
+  forgotPassword,
+  resetPassword,
+  requestRoleConfirmation,
+  confirmRole,
+  assignAgentRole,
+  getAllUsers,
+  updateUser,
+  deleteUser,
+} = require("../controllers/authController");
 
-// ✅ Rôles valides
-const VALID_ROLES = ["agent", "proprietaire", "locataire"];
+// -----------------------------------------------------------------------------
+// Middleware & constantes
+// -----------------------------------------------------------------------------
 
-// ✅ Route pour l'inscription (avec validation des rôles)
-router.post('/register/:type', (req, res, next) => {
-    try {
-        const { type } = req.params;
-        console.log(`📝 Tentative d'inscription avec le rôle : ${type}`);
+const isSuperAdmin = require("../middlewares/authMiddleware"); // ✅ Import du middleware
 
-        if (!VALID_ROLES.includes(type)) {
-            console.log(`⚠️ Rôle invalide : ${type}`);
-            return res.status(400).json({ error: "Rôle invalide." });
-        }
 
-        // Passe au contrôleur si le rôle est valide
-        console.log(`✅ Rôle valide : ${type} - Enregistrement en cours...`);
-        register(req, res, next);
-    } catch (error) {
-        console.error("🚨 Erreur lors de l'inscription :", error);
-        res.status(500).json({ error: "Erreur lors de l'inscription." });
-    }
-});
+/**
+ * Rôles autorisés pour l'inscription.
+ * Ajoutez ici un nouveau rôle pour l'activer dans l'API.
+ */
+const VALID_ROLES = ["proprietaire", "locataire"]; // ✅ Correction ici
 
-// ✅ Route pour la vérification des comptes
-router.get('/verify/:token', (req, res, next) => {
-    console.log(`🔍 Vérification du token : ${req.params.token}`);
-    verifyEmail(req, res, next);
-});
+/**
+ * Vérifie que :type est bien un rôle reconnu.
+ */
+function validateRole(req, res, next) {
+  const { type } = req.params;
+  if (!VALID_ROLES.includes(type)) {
+    console.warn(`⚠️  Rôle invalide reçu : ${type}`);
+    return res.status(400).json({ error: "Rôle invalide." });
+  }
+  console.info(`✅ Rôle validé : ${type}`);
+  next();
+}
 
-// ✅ Route pour la connexion
-router.post('/login', (req, res, next) => {
-    console.log("🔑 Tentative de connexion");
-    login(req, res, next);
-});
+// -----------------------------------------------------------------------------
+// Définition des routes
+// -----------------------------------------------------------------------------
 
-// ✅ Route pour demander un lien de réinitialisation de mot de passe
-router.post('/forgot-password', (req, res, next) => {
-    console.log("🔑 Demande de réinitialisation de mot de passe");
-    forgotPassword(req, res, next);
-});
+// Inscription avec rôle obligatoire
+router.post("/register/:type", validateRole, register);
 
-// ✅ Route pour réinitialiser le mot de passe avec le token
-router.post('/reset-password/:token', (req, res, next) => {
-    console.log(`🔄 Tentative de réinitialisation avec le token : ${req.params.token}`);
-    resetPassword(req, res, next);
-});
+// Vérification de compte (email)
+router.get("/verify/:token", verifyEmail);
 
-// ✅ Route pour demander la confirmation d'ajout de rôle
-router.post('/request-role-confirmation', (req, res, next) => {
-    console.log("📝 Demande de confirmation pour l'ajout de rôle");
-    requestRoleConfirmation(req, res, next);
-});
+// Connexion
+router.post("/login", login);
 
-// ✅ Route pour confirmer l'ajout du rôle
-router.get('/confirm-role/:token', (req, res, next) => {
-    console.log(`🔒 Confirmation du rôle avec le token : ${req.params.token}`);
-    confirmRole(req, res, next);
-});
+// Demande de lien de réinitialisation de mot de passe
+router.post("/forgot-password", forgotPassword);
+
+// Réinitialisation du mot de passe via token
+router.post("/reset-password/:token", resetPassword);
+
+// Demande d'ajout de rôle
+router.post("/request-role-confirmation", requestRoleConfirmation);
+
+// Confirmation de l'ajout de rôle
+router.get("/confirm-role/:token", confirmRole);
+
+// ✅ Route protégée (seulement pour super admins)
+router.post("/assign-agent", isSuperAdmin, assignAgentRole);
+
+router.get("/users", isSuperAdmin, getAllUsers);
+router.put('/users/:id', isSuperAdmin, updateUser);
+router.delete('/users/:id', isSuperAdmin, deleteUser);
 
 module.exports = router;

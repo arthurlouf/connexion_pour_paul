@@ -14,28 +14,36 @@ const ForgotPassword = () => {
 
     // ✅ Envoi de l'email pour réinitialiser le mot de passe
     const handleSubmit = async (e) => {
-        e.preventDefault();
+    e.preventDefault();
 
-        try {
-            const response = await axios.post(`http://localhost:4000/api/auth/forgot-password/${type}`, { email });
+    try {
+        const response = await axios.post(
+        "http://localhost:4000/api/auth/forgot-password",
+        { email }
+        );
 
-            // ✅ Vérifie que le serveur a bien répondu
-            if (response.status === 200) {
-                setMessage(response.data.message || "✅ Un lien de réinitialisation a été envoyé à votre adresse email.");
-                setError('');
-            }
-        } catch (error) {
-            console.error(error);
-
-            // ✅ Affichage d'un message d'erreur plus précis
-            if (error.response && error.response.data && error.response.data.error) {
-                setError(`⚠️ ${error.response.data.error}`);
-            } else {
-                setError("⚠️ Impossible d'envoyer le lien de réinitialisation. Vérifiez votre adresse email et réessayez.");
-            }
-
-            setMessage('');
+        // ✅ Vérifie que le serveur a bien répondu
+        if (response.status === 200) {
+        setMessage(
+            response.data.message ||
+            "✅ Un lien de réinitialisation a été envoyé à votre adresse email."
+        );
+        setError("");
         }
+    } catch (error) {
+        console.error(error);
+
+        // ✅ Affichage d'un message d'erreur plus précis
+        if (error.response?.data?.error) {
+        setError(`⚠️ ${error.response.data.error}`);
+        } else {
+        setError(
+            "⚠️ Impossible d'envoyer le lien de réinitialisation. Vérifiez votre adresse email et réessayez."
+        );
+        }
+
+        setMessage("");
+    }
     };
 
     return (

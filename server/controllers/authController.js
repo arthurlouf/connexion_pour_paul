@@ -21,7 +21,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // ✅ Rôles valides
-const VALID_ROLES = ["agent", "proprietaire", "locataire"];
+const VALID_ROLES = ["proprietaire", "locataire"];
 
 // 🔑 Fonction de connexion
 async function login(req, res) {
@@ -273,9 +273,11 @@ function verifyEmail(req, res) {
         }
     );
 }
-// 🔑 Fonction pour demander un lien de réinitialisation
+
+// ✅ Fonction pour envoyer le lien de réinitialisation
 async function forgotPassword(req, res) {
     const { email } = req.body;
+    console.log("📧 Demande de réinitialisation pour :", email);
 
     try {
         const resetToken = jwt.sign({ email }, process.env.JWT_SECRET, { expiresIn: '1h' });
@@ -290,29 +292,34 @@ async function forgotPassword(req, res) {
 
         transporter.sendMail(mailOptions, (error) => {
             if (error) {
-                console.error("Erreur lors de l'envoi de l'email :", error);
+                console.error("❌ Erreur lors de l'envoi de l'email :", error);
                 return res.status(500).json({ error: "Erreur lors de l'envoi de l'email." });
             }
 
+            console.log("✅ Email de réinitialisation envoyé avec succès à :", email);
             res.status(200).json({ message: "Un lien de réinitialisation a été envoyé à votre adresse email." });
         });
     } catch (error) {
-        console.error("Erreur serveur :", error);
+        console.error("❌ Erreur serveur :", error);
         res.status(500).json({ error: "Erreur serveur." });
     }
 }
 
-// 🔑 Fonction pour réinitialiser le mot de passe
+// ✅ Fonction pour réinitialiser le mot de passe
 async function resetPassword(req, res) {
     const { token } = req.params;
     const { password, confirmPassword } = req.body;
+    console.log("🔑 Tentative de réinitialisation avec le token :", token);
 
     if (password !== confirmPassword) {
+        console.warn("⚠️ Les mots de passe ne correspondent pas.");
         return res.status(400).json({ error: "Les mots de passe ne correspondent pas." });
     }
 
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        console.log("✅ Token décodé avec succès :", decoded);
+
         const hashedPassword = await bcrypt.hash(password, 10);
 
         db.query(
@@ -320,15 +327,16 @@ async function resetPassword(req, res) {
             [hashedPassword, decoded.email],
             (err) => {
                 if (err) {
-                    console.error("Erreur serveur :", err);
-                    return res.status(500).json({ error: "Erreur lors de la réinitialisation du mot de passe." });
+                    console.error("❌ Erreur lors de la mise à jour du mot de passe :", err);
+                    return res.status(500).json({ error: "Erreur lors de la mise à jour du mot de passe." });
                 }
 
+                console.log("✅ Mot de passe réinitialisé avec succès pour :", decoded.email);
                 res.status(200).json({ message: "Votre mot de passe a été réinitialisé avec succès." });
             }
         );
     } catch (error) {
-        console.error("Token invalide ou expiré :", error);
+        console.error("❌ Token invalide ou expiré :", error);
         res.status(400).json({ error: "Le lien de réinitialisation est invalide ou a expiré." });
     }
 }
@@ -439,6 +447,137 @@ function confirmRole(req, res) {
     }
 }
 
+// Ajouter le rôle "agent" pour un utilisateur existant (super admin uniquement)
+async function assignAgentRole(req, res) {
+    const { email } = req.body;
+
+    try {
+        // Vérifie si l'utilisateur existe
+        db.query(
+            `SELECT id_utilisateur FROM utilisateurs WHERE email = ?`,
+            [email],
+            (err, results) => {
+                if (err || results.length === 0) {
+                    return res.status(404).json({ error: "Utilisateur non trouvé." });
+                }
+
+                const userId = results[0].id_utilisateur;
+
+                // Vérifie si le rôle "agent" est déjà attribué
+                db.query(
+                    `SELECT r.nom_role FROM utilisateur_roles ur 
+                     JOIN roles r ON ur.id_role = r.id_role 
+                     WHERE ur.id_utilisateur = ? AND r.nom_role = 'agent'`,
+                    [userId],
+                    (err, roleResults) => {
+                        if (err) return res.status(500).json({ error: "Erreur serveur." });
+
+                        if (roleResults.length > 0) {
+                            return res.status(409).json({ error: "L'utilisateur est déjà un agent." });
+                        }
+
+                        // Assigner le rôle "agent"
+                        db.query(
+                            `INSERT INTO utilisateur_roles (id_utilisateur, id_role) 
+                             SELECT ?, id_role FROM roles WHERE nom_role = 'agent'`,
+                            [userId],
+                            (err) => {
+                                if (err) return res.status(500).json({ error: "Erreur d'association de rôle." });
+                                res.status(200).json({ message: "Rôle agent attribué avec succès." });
+                            }
+                        );
+                    }
+                );
+            }
+        );
+    } catch (error) {
+        res.status(500).json({ error: "Erreur serveur." });
+    }
+}
+
+// ✅ Récupération de tous les utilisateurs avec leurs rôles
+async function getAllUsers(req, res) {
+    try {
+        db.query(`
+            SELECT u.id_utilisateur, u.nom, u.prenom, u.email, u.telephone, GROUP_CONCAT(r.nom_role) AS roles
+            FROM utilisateurs u
+            LEFT JOIN utilisateur_roles ur ON u.id_utilisateur = ur.id_utilisateur
+            LEFT JOIN roles r ON ur.id_role = r.id_role
+            GROUP BY u.id_utilisateur
+        `, (err, results) => {
+            if (err) {
+                console.error("Erreur lors de la récupération des utilisateurs :", err);
+                return res.status(500).json({ error: "Erreur serveur." });
+            }
+            res.status(200).json({ users: results });
+        });
+    } catch (error) {
+        console.error("Erreur serveur :", error);
+        res.status(500).json({ error: "Erreur serveur." });
+    }
+}
+
+// ✅ Mettre à jour les informations d'un utilisateur
+async function updateUser(req, res) {
+    const { id } = req.params;
+    const { nom, prenom, email, telephone, roles } = req.body;
+
+    try {
+        // ✅ Vérifie que les rôles sont sous forme de tableau
+        const rolesArray = typeof roles === 'string' ? roles.split(',').map(role => role.trim()) : [];
+
+        // ✅ Mise à jour des informations de base
+        db.query(`
+            UPDATE utilisateurs 
+            SET nom = ?, prenom = ?, email = ?, telephone = ?
+            WHERE id_utilisateur = ?
+        `, [nom, prenom, email, telephone, id], (err) => {
+            if (err) {
+                console.error("Erreur lors de la mise à jour de l'utilisateur :", err);
+                return res.status(500).json({ error: "Erreur serveur." });
+            }
+
+            // ✅ Mise à jour des rôles
+            db.query(`DELETE FROM utilisateur_roles WHERE id_utilisateur = ?`, [id], (err) => {
+                if (err) return res.status(500).json({ error: "Erreur lors de la mise à jour des rôles." });
+
+                if (rolesArray.length > 0) {
+                    const roleQueries = rolesArray.map(role => `
+                        INSERT INTO utilisateur_roles (id_utilisateur, id_role) 
+                        SELECT ?, id_role FROM roles WHERE nom_role = ?
+                    `);
+
+                    const params = rolesArray.flatMap(role => [id, role]);
+
+                    db.query(roleQueries.join("; "), params, (err) => {
+                        if (err) return res.status(500).json({ error: "Erreur lors de l'ajout des rôles." });
+                        res.status(200).json({ message: "Utilisateur mis à jour avec succès." });
+                    });
+                } else {
+                    res.status(200).json({ message: "Utilisateur mis à jour avec succès." });
+                }
+            });
+        });
+    } catch (error) {
+        console.error("Erreur serveur :", error);
+        res.status(500).json({ error: "Erreur serveur." });
+    }
+}
+
+// ✅ Supprimer un utilisateur
+async function deleteUser(req, res) {
+    const { id } = req.params;
+    try {
+        db.query(`DELETE FROM utilisateurs WHERE id_utilisateur = ?`, [id], (err) => {
+            if (err) return res.status(500).json({ error: "Erreur lors de la suppression de l'utilisateur." });
+            res.status(200).json({ message: "Utilisateur supprimé avec succès." });
+        });
+    } catch (error) {
+        res.status(500).json({ error: "Erreur serveur." });
+    }
+}
+
+
 // 🔑 Exports
 module.exports = {
     register,
@@ -448,4 +587,8 @@ module.exports = {
     resetPassword,
     requestRoleConfirmation,
     confirmRole,
+    assignAgentRole,
+    getAllUsers,
+    updateUser,
+    deleteUser,
 };

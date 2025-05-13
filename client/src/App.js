@@ -9,6 +9,7 @@ import PrivateRoute from './components/PrivateRoute';
 import Dashboard from './components/Dashboard';
 import ForgotPassword from './components/Auth/ForgotPassword';
 import ResetPassword from './components/Auth/ResetPassword';
+import ManageUsers from './components/admin/ManageUsers'; 
 import './App.css';
 
 function App() {
@@ -32,7 +33,10 @@ function App() {
 
                 {/* Système de mot de passe oublié */}
                 <Route path="/forgot-password/:type" element={<ForgotPassword />} />
-                <Route path="/reset-password/:type/:token" element={<ResetPassword />} />
+                <Route path="/reset-password/:token" element={<ResetPassword />} />
+
+                {/* Gestion des utilisateurs (Admin uniquement) */}
+                <Route path="/admin/manage-users" element={<PrivateRoute><ManageUsers /></PrivateRoute>} />
 
                 {/* Page 404 */}
                 <Route path="*" element={<h2>404 - Page non trouvée</h2>} />

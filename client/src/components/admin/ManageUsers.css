@@ -1,0 +1,121 @@
+/* src/components/admin/ManageUsers.css */
+
+.container {
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-top: 50px;
+    text-align: center;
+}
+
+h2 {
+    color: #343a40;
+    margin-bottom: 30px;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+}
+
+.user-table th, .user-table td {
+    padding: 15px;
+    text-align: left;
+    border: 1px solid #ddd;
+}
+
+.user-table th {
+    background-color: #f2f2f2;
+    font-weight: bold;
+    color: #343a40;
+}
+
+.user-table tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.user-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+button {
+    background-color: #007bff;
+    color: #ffffff;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin: 0 5px;
+    font-size: 14px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+.delete-button {
+    background-color: #d9534f;
+}
+
+.delete-button:hover {
+    background-color: #c9302c;
+}
+
+.success-message {
+    color: #5cb85c;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.edit-form {
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-top: 30px;
+    text-align: center;
+}
+
+.edit-form input {
+    width: 80%;
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.save-button {
+    background-color: #28a745;
+}
+
+.save-button:hover {
+    background-color: #218838;
+}
+
+.cancel-button {
+    background-color: #6c757d;
+}
+
+.cancel-button:hover {
+    background-color: #5a6268;
+}
+
+.role-checkboxes {
+    margin-bottom: 20px;
+    text-align: left;
+    margin-top: 15px;
+}
+
+.role-checkboxes label {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.role-checkboxes input {
+    margin-right: 10px;
+}
